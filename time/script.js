@@ -16,82 +16,111 @@ const restartGameBtn = document.getElementById("restartGame");
 
 const TOTAL_ROUNDS = 5;
 
-// Indizi creativi
-// Indizi creativi per fascia oraria
 const clueSets = {
     nightDeep: [
-        "Un’ora in cui il mondo sembra sospeso.",
-        "Il silenzio è così profondo che quasi fa rumore.",
-        "Solo i pensieri e i nottambuli sono svegli.",
-        "Un momento in cui il cielo è più nero dell'inchiostro.",
-        "Le strade dormono, ma qualcosa veglia ancora.",
-        "Un’ora che appartiene solo ai segreti.",
-        "Il tempo sembra rallentare fino quasi a fermarsi.",
-        "Un momento in cui anche le ombre riposano.",
-        "Il mondo è immobile, come trattenendo il fiato.",
-        "Un’ora che pochi hanno davvero visto."
+        "È un’ora in cui la città dorme profondamente: tra mezzanotte e l’alba.",
+        "Il mondo è immobile: siamo nelle ore più buie della notte.",
+        "Solo i nottambuli e i sogni sono svegli: è notte fonda.",
+        "Un momento in cui il silenzio domina completamente.",
+        "Le strade sono vuote e il cielo è nero: siamo nel cuore della notte.",
+        "Un’ora in cui anche i pensieri parlano piano.",
+        "La notte è al suo punto più profondo.",
+        "Un orario che appartiene solo a chi non riesce a dormire.",
+        "Il mondo è avvolto nel buio più totale.",
+        "Un’ora in cui il tempo sembra sospeso.",
+        "La luna è alta e la città tace.",
+        "Un momento che pochi vedono davvero.",
+        "Un’ora che vive tra sogno e realtà.",
+        "Il silenzio è così forte da sembrare un suono.",
+        "Un orario che appartiene solo alla notte più scura."
     ],
     dawn: [
-        "Un’ora in cui il mondo si sveglia piano.",
-        "La luce inizia a insinuarsi tra le case.",
-        "Il cielo cambia colore come un respiro lento.",
-        "Un momento fragile, quasi sacro.",
-        "Gli uccelli iniziano a raccontare la giornata.",
-        "Il mondo apre gli occhi senza fretta.",
-        "Un’ora che profuma di nuovo inizio.",
-        "La notte cede il passo alla speranza.",
-        "Un momento in cui tutto sembra possibile.",
-        "Il silenzio si spezza con dolcezza."
+        "È un’ora tra il primo chiarore e il risveglio del mondo.",
+        "La luce inizia appena a comparire: siamo all’alba.",
+        "Il cielo cambia colore, ma il sole non è ancora alto.",
+        "Un momento in cui la notte sta finendo.",
+        "Le prime luci del giorno stanno arrivando.",
+        "Un’ora fresca, silenziosa, tra buio e mattino.",
+        "Il mondo si sveglia lentamente.",
+        "Un orario che profuma di inizio.",
+        "Il cielo è chiaro ma il sole è ancora basso.",
+        "Un’ora in cui i primi rumori del giorno iniziano a sentirsi.",
+        "La città si stiracchia.",
+        "Un momento fragile tra notte e giorno.",
+        "Il cielo è pastello, non ancora luminoso.",
+        "Un’ora che anticipa il mattino vero e proprio.",
+        "Un orario che appartiene ai primi risvegli."
     ],
     morning: [
-        "Un’ora in cui il mondo è pieno di energia.",
-        "La giornata è già in corsa.",
-        "Il sole illumina ogni cosa senza esitazione.",
-        "Un momento perfetto per iniziare qualcosa.",
-        "Le strade si riempiono di passi e intenzioni.",
-        "Il ritmo della giornata accelera.",
-        "Un’ora che sa di caffè e possibilità.",
-        "La luce è chiara, decisa, viva.",
-        "Un momento in cui tutto prende forma.",
-        "Il mondo è sveglio, e si sente."
+        "È un’ora piena di luce: la mattina è già iniziata.",
+        "Il sole è alto abbastanza da illuminare tutto.",
+        "La giornata è in pieno movimento.",
+        "Un orario tipico di chi lavora o studia.",
+        "La mattina è ormai ben avviata.",
+        "Un’ora energica, luminosa.",
+        "Il mondo è completamente sveglio.",
+        "Un orario in cui il traffico è vivo.",
+        "La luce è forte e chiara.",
+        "Un’ora che sa di routine mattutina.",
+        "Il sole è già salito parecchio.",
+        "Un momento molto attivo della giornata.",
+        "La mattina è nel suo pieno.",
+        "Un orario ideale per iniziare attività.",
+        "La giornata è già ben avviata."
     ],
     afternoon: [
-        "Un’ora in cui il tempo sembra distendersi.",
-        "La luce è morbida, quasi pigra.",
-        "Il mondo rallenta senza fermarsi.",
-        "Un momento che invita a respirare.",
-        "Le ombre si allungano come a stiracchiarsi.",
-        "Un’ora che sa di calma apparente.",
-        "Il giorno è maturo, consapevole.",
-        "Un momento sospeso tra fare e riposare.",
-        "La luce è calda, gentile.",
-        "Un’ora che invita alla riflessione."
+        "È un’ora del pomeriggio, quando il sole è ancora alto.",
+        "La luce è calda e piena.",
+        "Il giorno è maturo, non più giovane.",
+        "Un orario tipico delle attività pomeridiane.",
+        "Il sole inizia lentamente a scendere.",
+        "Un momento tranquillo ma ancora luminoso.",
+        "Il pomeriggio è nel suo pieno.",
+        "Un’ora che invita alla calma.",
+        "La giornata è oltre la metà.",
+        "Un orario in cui le ombre iniziano ad allungarsi.",
+        "Il sole è ancora forte ma meno aggressivo.",
+        "Un momento di transizione verso la sera.",
+        "Un’ora che sa di metà giornata avanzata.",
+        "Il pomeriggio è ben inoltrato.",
+        "Un orario caldo e disteso."
     ],
     evening: [
-        "Un’ora in cui la città si illumina di storie.",
-        "Il cielo si tinge di colori profondi.",
-        "Il giorno si chiude con eleganza.",
-        "Un momento che profuma di promesse.",
-        "Le luci si accendono come pensieri.",
-        "Un’ora che invita a uscire o a tornare.",
-        "Il mondo cambia ritmo, più lento, più dolce.",
-        "Un momento che appartiene ai ricordi.",
-        "La luce svanisce, ma non del tutto.",
-        "Un’ora che sa di attesa."
+        "È un’ora in cui la luce sta svanendo: siamo verso sera.",
+        "Il sole è basso e il cielo si colora.",
+        "La giornata sta finendo.",
+        "Un orario tipico della cena o del rientro a casa.",
+        "Le luci della città iniziano ad accendersi.",
+        "Un momento che profuma di sera.",
+        "Le ombre sono lunghe e morbide.",
+        "Il cielo è arancione, rosa o viola.",
+        "Un’ora che segna la fine delle attività.",
+        "La luce è debole ma ancora presente.",
+        "Un orario che invita al relax.",
+        "Il giorno sta cedendo alla notte.",
+        "Un momento perfetto per una passeggiata serale.",
+        "La città cambia ritmo.",
+        "Un’ora che appartiene alla sera vera e propria."
     ],
     lateNight: [
-        "Un’ora in cui solo i nottambuli resistono.",
-        "Il mondo è quieto ma non del tutto addormentato.",
-        "Le luci isolate raccontano storie segrete.",
-        "Un momento che appartiene ai pensieri più profondi.",
-        "La notte è viva, ma in silenzio.",
-        "Un’ora che scivola tra sogno e realtà.",
-        "Il tempo sembra più morbido, più lento.",
-        "Un momento che invita alla contemplazione.",
-        "La città respira piano.",
-        "Un’ora che pochi notano davvero."
+        "È un’ora tarda, quando molti dormono già.",
+        "La notte è iniziata da un po’, ma non è profonda.",
+        "Le strade sono tranquille ma non deserte.",
+        "Un orario tipico dei nottambuli.",
+        "La città è silenziosa ma non spenta.",
+        "Un momento tra sera e notte.",
+        "Le luci artificiali dominano la scena.",
+        "Un’ora in cui il mondo rallenta.",
+        "La notte è giovane ma già scura.",
+        "Un orario che appartiene ai pensieri.",
+        "Il silenzio cresce, ma non è totale.",
+        "Un momento di quiete dopo la giornata.",
+        "La notte è iniziata davvero.",
+        "Un’ora che invita alla riflessione.",
+        "Un orario in cui il tempo sembra più lento."
     ]
 };
+
 
 const roundsConfig = [
     {
@@ -202,6 +231,10 @@ function setupRound(index) {
     totalMinutes = 12 * 60; // 12:00
     updateCurrentTimeLabel();
     drawClock();
+
+    // Rimuovi eventuale badge precedente
+    const oldBadge = document.querySelector(".score-badge");
+    if (oldBadge) oldBadge.remove();
 }
 
 // ---------- Disegno orologio ----------
@@ -429,12 +462,22 @@ function onPointerUp() {
 
 function computeScore() {
     const dist = circularDistance(totalMinutes, targetMinutes);
-    // curva morbida: 10 * e^-( (dist/120)^2 ), minimo 1
-    let raw = 10 * Math.exp(-Math.pow(dist / 120, 2));
+
+    // Curva molto più generosa:
+    // 10 * e^-( (dist/180)^2 )
+    // - 0–30 min → 9.5–10
+    // - 30–90 min → 8–9.5
+    // - 90–180 min → 6–8
+    // - 180–360 min → 3–6
+    // - oltre → minimo 1
+    let raw = 10 * Math.exp(-Math.pow(dist / 180, 2));
+
     if (raw < 1) raw = 1;
     if (raw > 10) raw = 10;
+
     return { score: Math.round(raw * 10) / 10, dist };
 }
+
 
 // ---------- Logica round ----------
 
@@ -445,11 +488,21 @@ function updateCurrentTimeLabel() {
 function handleConfirm() {
     if (roundFinished) return;
 
+    // Rimuovi eventuale badge precedente
+    const oldBadge = document.querySelector(".score-badge");
+    if (oldBadge) oldBadge.remove();
+
     const { score, dist } = computeScore();
     scores[currentRound] = score;
     roundFinished = true;
     confirmButton.disabled = true;
     nextButton.disabled = currentRound >= TOTAL_ROUNDS - 1;
+
+    // Crea badge punteggio
+    const badge = document.createElement("div");
+    badge.className = "score-badge";
+    badge.textContent = `Punteggio: ${score.toFixed(1)} / 10`;
+    messageEl.insertAdjacentElement("afterend", badge);
 
     const targetStr = formatTime24(targetMinutes);
     messageEl.textContent =
@@ -463,19 +516,44 @@ function handleConfirm() {
 }
 
 function showFinalScores() {
-    scoresPanel.classList.remove("hidden");
-    scoresList.innerHTML = "";
+    // Crea overlay
+    const overlay = document.createElement("div");
+    overlay.className = "final-overlay";
+
+    const box = document.createElement("div");
+    box.className = "final-box";
+
+    const title = document.createElement("h2");
+    title.textContent = "Risultati finali";
+
+    const list = document.createElement("ul");
     let sum = 0;
     scores.forEach((s, i) => {
         const li = document.createElement("li");
         li.textContent = `Round ${i + 1}: ${s.toFixed(1)} / 10`;
-        scoresList.appendChild(li);
+        list.appendChild(li);
         sum += s;
     });
-    const avg = sum / scores.length;
-    averageScoreEl.textContent = `Punteggio medio: ${avg.toFixed(1)} / 10`;
-    nextButton.disabled = true;
+
+    const avg = document.createElement("div");
+    avg.className = "average";
+    avg.textContent = `Media: ${(sum / scores.length).toFixed(1)} / 10`;
+
+    const restartBtn = document.createElement("button");
+    restartBtn.textContent = "Ricomincia partita";
+    restartBtn.onclick = () => {
+        overlay.remove();
+        handleRestartGame();
+    };
+
+    box.appendChild(title);
+    box.appendChild(list);
+    box.appendChild(avg);
+    box.appendChild(restartBtn);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
 }
+
 
 function handleNextRound() {
     if (!roundFinished) return;
