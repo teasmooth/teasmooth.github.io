@@ -1,34 +1,52 @@
 const canvas = document.getElementById("gameCanvas"); 
 const ctx = canvas.getContext("2d");
 
-// Risoluzione interna fissa (non cambiare)
-canvas.width = 400;
-canvas.height = 600;
+// Risoluzione interna fissa
+const aspectRatio = 3 / 4;
+canvas.height = window.innerHeight;
+canvas.width = window.innerHeight * aspectRatio;
 
-let birdX = 50; let birdY = 150; let birdVelocity = 0; let gravity = 0.25; let jump = -6;
+// Fisica a tempo costante (120 FPS target)
+const TARGET_FPS = 120;
+const TARGET_DT = 1 / TARGET_FPS;
 
-let pipes = []; let pipeWidth = 60; let pipeGap = 150; let pipeSpeed = 2;
+// Velocità base (a 120 FPS)
+const BASE_GRAVITY = 0.15;
+const BASE_JUMP = -5;
+const BASE_PIPE_SPEED = 2;
+
+// Calcola moltiplicatore basato sul delta time
+let lastTime = 0;
+function getTimeMultiplier(dt) {
+    return dt / TARGET_DT;
+}
+
+let birdX = 50; let birdY = 150; let birdVelocity = 0;
+
+let pipes = []; let pipeWidth = 60; let pipeGap = 150;
 
 let score = 0; let gameOver = false;
+
+const getScale = () => 1;
 
 // Input da tastiera
 document.addEventListener("keydown", (e) => { 
     e.preventDefault();
-    if (!gameOver) birdVelocity = jump; 
+    if (!gameOver) birdVelocity = BASE_JUMP; 
     else restartGame(); 
 });
 
 // Input da mouse
 document.addEventListener("mousedown", (e) => { 
     e.preventDefault();
-    if (!gameOver) birdVelocity = jump; 
+    if (!gameOver) birdVelocity = BASE_JUMP; 
     else restartGame(); 
 });
 
 // Input da touch - supporto mobile
 document.addEventListener("touchstart", (e) => {
     e.preventDefault();
-    if (!gameOver) birdVelocity = jump;
+    if (!gameOver) birdVelocity = BASE_JUMP;
     else restartGame();
 }, { passive: false });
 
@@ -43,36 +61,46 @@ function spawnPipe() {
 
 setInterval(spawnPipe, 2000);
 
-function update() {
+function update(currentTime) {
     if (gameOver) return;
 
+    // Calcola delta time e moltiplicatore
+    const dt = lastTime ? (currentTime - lastTime) / 1000 : TARGET_DT;
+    lastTime = currentTime;
+    const timeScale = Math.min(getTimeMultiplier(dt), 2); // cap a 2x per evitare salti
+
+    const scale = getScale();
+    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    birdVelocity += gravity;
-    birdY += birdVelocity;
+    // Applica fisica con timeScale
+    birdVelocity += BASE_GRAVITY * timeScale;
+    birdY += birdVelocity * timeScale;
 
+    // Uccello ridimensionato
+    const birdSize = 30 * scale;
     ctx.fillStyle = "yellow";
-    ctx.fillRect(birdX, birdY, 30, 30);
+    ctx.fillRect(birdX * scale, birdY, birdSize, birdSize);
 
     ctx.fillStyle = "green";
     pipes.forEach(pipe => {
-        pipe.x -= pipeSpeed;
+        pipe.x -= BASE_PIPE_SPEED * timeScale;
 
-        ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top);
-        ctx.fillRect(pipe.x, pipe.bottom, pipeWidth, canvas.height - pipe.bottom);
+        ctx.fillRect(pipe.x, 0, pipeWidth * scale, pipe.top);
+        ctx.fillRect(pipe.x, pipe.bottom, pipeWidth * scale, canvas.height - pipe.bottom);
 
-        if (birdX < pipe.x + pipeWidth &&
-            birdX + 30 > pipe.x &&
-            (birdY < pipe.top || birdY + 30 > pipe.bottom)) {
+        if (birdX * scale < pipe.x + pipeWidth * scale &&
+            birdX * scale + birdSize > pipe.x &&
+            (birdY < pipe.top || birdY + birdSize > pipe.bottom)) {
             endGame();
         }
 
-        if (pipe.x + pipeWidth <= birdX && pipe.x + pipeWidth + pipeSpeed > birdX) {
+        if (pipe.x + pipeWidth * scale <= birdX * scale && pipe.x + pipeWidth * scale + BASE_PIPE_SPEED * timeScale > birdX * scale) {
             score++;
         }
     });
 
-    if (birdY > canvas.height - 30 || birdY < 0) endGame();
+    if (birdY > canvas.height - birdSize || birdY < 0) endGame();
 
     ctx.fillStyle = "white";
     ctx.font = "30px Arial";
@@ -98,7 +126,8 @@ function restartGame() {
     birdVelocity = 0;
     pipes = []; score = 0;
     gameOver = false;
-    update();
+    lastTime = 0;
+    requestAnimationFrame(update);
 }
 
-update();
+update(performance.now());
