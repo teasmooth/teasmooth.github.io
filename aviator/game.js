@@ -443,12 +443,28 @@ function shakeBet() {
 }
 
 function quickBet(frac) {
+  if (state !== 'waiting') return;
+
   const amt = Math.max(1, Math.floor(balance * frac));
   document.getElementById('betAmount').value = amt;
+
+  const btn = document.getElementById('actionBtn');
+  if (state === 'waiting') {
+    btn.className = 'state-bet';
+    btn.textContent = amt === 0 ? 'SALTA ROUND' : 'SCOMMETTI';
+  }
 }
 
 function clearBet() {
+  if (state !== 'waiting') return;
+
   document.getElementById('betAmount').value = 0;
+
+  const btn = document.getElementById('actionBtn');
+  if (state === 'waiting') {
+    btn.className = 'state-bet';
+    btn.textContent = 'SALTA ROUND';
+  }
 }
 
 // ─── UI ───────────────────────────────────────────────────────
