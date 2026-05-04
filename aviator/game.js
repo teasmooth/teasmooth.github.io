@@ -8,9 +8,13 @@ const COUNTDOWN_SEC = 8;
 // ─── Performance optimizations ─────────────────────────────────
 // Mobile detection and performance tuning
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-const UI_UPDATE_INTERVAL = isMobile ? 150 : 50; // Update UI less frequently on mobile
+const UI_UPDATE_INTERVAL = isMobile ? 300 : 50; // Reduced frequency on mobile for smoother performance
+const MULT_UPDATE_INTERVAL = isMobile ? 400 : 100; // Separate interval for multiplier updates
 const MAX_PATH_POINTS = isMobile ? 50 : 100; // Limit path points on mobile
 const CANVAS_SCALE = isMobile ? Math.min(devicePixelRatio, 2) : devicePixelRatio; // Cap DPR on mobile
+
+// Countdown speed control
+let countdownSpeed = 1; // 1 = normal speed, 2 = double speed when bet is placed
 
 // Disable heavy animations on low-end devices (older Android/iOS, low core count)
 const isLowEndDevice = isMobile && (
@@ -173,6 +177,7 @@ function startFlight() {
   updateUI();
   let lastRiseTime = 0;
   let lastUIUpdate = 0;
+  let lastMultUpdate = 0; // Separate timer for multiplier updates
   lastFrameTime = performance.now();
   accumulatedTime = 0;
 
@@ -231,8 +236,14 @@ function startFlight() {
 
     // UI updates (throttled)
     if (currentTime - lastUIUpdate > UI_UPDATE_INTERVAL) {
-      updateMultDisplay();
+      updateUI();
       lastUIUpdate = currentTime;
+    }
+
+    // Multiplier display updates (less frequent on mobile)
+    if (currentTime - lastMultUpdate > MULT_UPDATE_INTERVAL) {
+      updateMultDisplay();
+      lastMultUpdate = currentTime;
     }
 
     // Continue loop if still flying
@@ -270,19 +281,16 @@ function startCountdown() {
   state = 'waiting';
   pathPts = [];
   let n = COUNTDOWN_SEC;
+  countdownSpeed = 1; // Reset to normal speed
   document.getElementById('cdNum').textContent = n;
   document.getElementById('cdOverlay').classList.add('show');
   document.getElementById('multOverlay').style.visibility = 'hidden';
   updateUI();
   draw();
 
-  // Use longer intervals on mobile for better performance
-  const interval = isMobile ? 1200 : 1000;
-  cdTimer = setInterval(() => {
+  function countdownTick() {
     n--;
     if (n <= 0) {
-      clearInterval(cdTimer);
-      
       // If no bet was placed, auto-place default bet and start flight
       if (!betPlaced) {
         const amt = parseInt(document.getElementById('betAmount').value, 10);
@@ -301,14 +309,24 @@ function startCountdown() {
       currentMult = 1;
       viewMaxMs = Math.max(Math.log(crashPoint) / MULT_K * 1.25, 8000);
       startFlight();
-    } else {
-      // Reduce tick frequency on mobile and disable on low-end devices
-      if (!isLowEndDevice && (!isMobile || n % 2 === 0)) {
-        SFX.tick();
-      }
-      document.getElementById('cdNum').textContent = n;
+      return;
     }
-  }, interval);
+
+    // Reduce tick frequency on mobile and disable on low-end devices
+    if (!isLowEndDevice && (!isMobile || n % 2 === 0)) {
+      SFX.tick();
+    }
+    document.getElementById('cdNum').textContent = n;
+
+    // Schedule next tick with current speed
+    const baseInterval = isMobile ? 1200 : 1000;
+    const currentInterval = baseInterval / countdownSpeed;
+    cdTimer = setTimeout(countdownTick, currentInterval);
+  }
+
+  // Start the countdown
+  const baseInterval = isMobile ? 1200 : 1000;
+  cdTimer = setTimeout(countdownTick, baseInterval / countdownSpeed);
 }
 
 // ─── Actions ──────────────────────────────────────────────────
@@ -327,8 +345,12 @@ function startGame() {
 }
 
 function handleAction() {
-  if (state === 'flying' && betPlaced && !cashedOut) {
-    doCashOut();
+  if (state === 'flying') {
+    if (betPlaced && !cashedOut) {
+      doCashOut();
+    } else if (!betPlaced) {
+      doPlaceBetDuringFlight();
+    }
   } else if (state === 'waiting' && !betPlaced) {
     doPlaceBet();
   }
@@ -347,14 +369,25 @@ function doPlaceBet() {
   updateBalanceUI();
   updateUI();
   
-  // Start flight immediately (don't wait for countdown)
-  clearInterval(cdTimer);
-  document.getElementById('cdOverlay').classList.remove('show');
-  document.getElementById('multOverlay').style.visibility = '';
-  crashPoint = genCrash();
-  currentMult = 1;
-  viewMaxMs = Math.max(Math.log(crashPoint) / MULT_K * 1.25, 8000);
-  startFlight();
+  // Speed up the countdown instead of starting flight immediately
+  if (state === 'waiting' && cdTimer) {
+    countdownSpeed = 2; // Double the speed when bet is placed
+  }
+}
+
+function doPlaceBetDuringFlight() {
+  const amt = parseInt(document.getElementById('betAmount').value, 10);
+  if (!amt || amt < 1 || amt > balance) {
+    shakeBet(); return;
+  }
+  betAmt = amt;
+  balance -= betAmt;
+  betPlaced = true;
+  cashedOut = false;
+  if (!isLowEndDevice) SFX.bet(); // Skip sound on low-end devices
+  updateBalanceUI();
+  updateUI();
+  // Don't start flight - we're already flying!
 }
 
 function doCashOut() {
@@ -393,13 +426,17 @@ function updateUI() {
   const betInput = document.getElementById('betAmount');
 
   if (state === 'flying') {
-    betInput.disabled = true;
+    betInput.disabled = false; // Allow betting during flight
     if (betPlaced && !cashedOut) {
       btn.className = 'state-cashout';
       btn.textContent = 'INCASSA';
-    } else {
+    } else if (cashedOut) {
       btn.className = 'state-wait';
-      btn.textContent = cashedOut ? 'INCASSATO ✓' : 'IN VOLO...';
+      btn.textContent = 'INCASSATO ✓';
+    } else {
+      // Allow placing bets during flight (last-minute betting)
+      btn.className = 'state-bet';
+      btn.textContent = 'SCOMMETTI';
     }
   } else if (state === 'waiting') {
     betInput.disabled = false;
@@ -420,12 +457,16 @@ function updateUI() {
 function updateMultDisplay() {
   const val = document.getElementById('multValue');
   const sub = document.getElementById('multSub');
-  val.textContent = currentMult.toFixed(2) + '×';
+  // Reduce precision on mobile for better performance
+  const precision = isMobile ? 1 : 2;
+  val.textContent = currentMult.toFixed(precision) + '×';
 
   if (state === 'flying') {
     val.className = 'mult-value flying';
     if (betPlaced && !cashedOut) {
-      sub.textContent = `${fmt(betAmt)} → ${fmt(Math.floor(betAmt * currentMult))} CR`;
+      // Optimize profit calculation - cache expensive operations
+      const profit = Math.floor(betAmt * currentMult);
+      sub.textContent = `${fmt(betAmt)} → ${fmt(profit)} CR`;
     } else if (cashedOut) {
       sub.textContent = 'Incassato ✓';
     } else {
