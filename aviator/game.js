@@ -9,7 +9,7 @@ const COUNTDOWN_SEC = 8;
 // Mobile detection and performance tuning
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 const UI_UPDATE_INTERVAL = isMobile ? 300 : 50; // Reduced frequency on mobile for smoother performance
-const MULT_UPDATE_INTERVAL = isMobile ? 400 : 100; // Separate interval for multiplier updates
+const MULT_UPDATE_INTERVAL = isMobile ? 200 : 60; // More responsive multiplier updates
 const MAX_PATH_POINTS = isMobile ? 50 : 100; // Limit path points on mobile
 const CANVAS_SCALE = isMobile ? Math.min(devicePixelRatio, 2) : devicePixelRatio; // Cap DPR on mobile
 
@@ -63,8 +63,9 @@ const H = () => canvas.parentElement.clientHeight;
 // ─── Crash Generation ─────────────────────────────────────────
 function genCrash() {
   const r = Math.random();
-  if (r < 0.01) return 1.00;
-  return Math.min(Math.max((1 - HOUSE) / (1 - r), 1.00), 500);
+  // Ensure crash point is always > 1.00x (no instant crashes)
+  const rawMult = (1 - HOUSE) / (1 - r);
+  return Math.min(Math.max(rawMult, 1.01), 500); // Minimum 1.01x
 }
 
 // ─── Multiplier ───────────────────────────────────────────────
@@ -175,6 +176,10 @@ function startFlight() {
   flyStart = performance.now();
   viewMaxMs = Math.max(Math.log(crashPoint) / MULT_K * 1.25, 8000);
   updateUI();
+  
+  // Disable heavy animations during flight for better performance
+  document.body.classList.add('flying-state');
+  
   let lastRiseTime = 0;
   let lastUIUpdate = 0;
   let lastMultUpdate = 0; // Separate timer for multiplier updates
@@ -256,6 +261,9 @@ function startFlight() {
 }
 
 function onCrash() {
+  // Re-enable animations after flight
+  document.body.classList.remove('flying-state');
+  
   history.unshift(+crashPoint.toFixed(2));
   if (history.length > 20) history.pop();
   updateHistoryUI();
