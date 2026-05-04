@@ -46,6 +46,31 @@ body{
   letter-spacing:0.3px;
 }
 
+/* ── Mobile optimizations ───────────────────────────────────── */
+@media (max-width: 768px) {
+  .logo{animation:none;} /* Remove continuous glow on mobile */
+  .mult-value{text-shadow:0 0 20px currentColor;} /* Reduce shadow complexity */
+  .cd-num{animation:countdownGlow 2s ease-in-out infinite alternate;} /* Slower glow */
+  .qb:hover{transform:none;} /* Remove hover transforms on mobile */
+  .pill:hover{transform:none;} /* Remove hover transforms on mobile */
+  .restart-btn:hover{transform:none;} /* Remove hover transforms on mobile */
+  #actionBtn:hover::before{display:none;} /* Remove shine effect on mobile */
+  #actionBtn:hover{transform:none;} /* Remove hover transforms on mobile */
+  .mute-btn:hover{transform:none;} /* Remove hover transforms on mobile */
+  .toggle-track::before{transition:all .2s ease;} /* Faster transitions */
+  #betAmount:focus{transform:none;} /* Remove scale on mobile */
+  #autoCashVal:focus{transform:none;} /* Remove scale on mobile */
+}
+
+/* Disable animations on low-end devices */
+@media (max-width: 768px) and (max-height: 800px) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* ── Header ─────────────────────────────────── */
 header{
   display:flex;

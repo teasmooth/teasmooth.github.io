@@ -5,6 +5,23 @@ const HOUSE = 0.03;
 const MULT_K = 0.00055; // multiplier = e^(K * elapsedMs)
 const COUNTDOWN_SEC = 8;
 
+// ─── Performance optimizations ─────────────────────────────────
+// Mobile detection and performance tuning
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+const UI_UPDATE_INTERVAL = isMobile ? 150 : 50; // Update UI less frequently on mobile
+const MAX_PATH_POINTS = isMobile ? 50 : 100; // Limit path points on mobile
+const CANVAS_SCALE = isMobile ? Math.min(devicePixelRatio, 2) : devicePixelRatio; // Cap DPR on mobile
+
+// Disable heavy animations on low-end devices (older Android/iOS, low core count)
+const isLowEndDevice = isMobile && (
+  /Samsung|Android [4-6]|iPhone [6-8]|iPad [2-4]/i.test(navigator.userAgent) ||
+  navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4
+);
+
+if (isLowEndDevice) {
+  document.documentElement.style.setProperty('--animation-duration', '0s');
+}
+
 // ─── State ────────────────────────────────────────────────────
 let balance = START;
 let state = 'waiting'; // 'waiting' | 'flying' | 'crashed'
@@ -26,11 +43,12 @@ const ctx = canvas.getContext('2d');
 
 function resize() {
   const w = canvas.parentElement;
-  canvas.width = w.clientWidth * devicePixelRatio;
-  canvas.height = w.clientHeight * devicePixelRatio;
+  const scale = CANVAS_SCALE;
+  canvas.width = w.clientWidth * scale;
+  canvas.height = w.clientHeight * scale;
   canvas.style.width = w.clientWidth + 'px';
   canvas.style.height = w.clientHeight + 'px';
-  ctx.scale(devicePixelRatio, devicePixelRatio);
+  ctx.scale(scale, scale);
 }
 resize();
 window.addEventListener('resize', () => { resize(); draw(); });
@@ -68,13 +86,16 @@ function draw() {
   ctx.fillStyle = '#1a0d0e';
   ctx.fillRect(0, 0, w, h);
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-  ctx.lineWidth = 1;
-  for (let x = w / 6; x < w; x += w / 6) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
-  }
-  for (let y = h / 4; y < h; y += h / 4) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  // Reduce grid complexity on mobile
+  if (!isMobile) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 1;
+    for (let x = w / 6; x < w; x += w / 6) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+    for (let y = h / 4; y < h; y += h / 4) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
   }
 
   if (pathPts.length < 2) {
@@ -89,6 +110,7 @@ function draw() {
   const lineColor = crashed ? '#ff2d4a' : '#ff7840';
   const glowColor = crashed ? 'rgba(255,45,74,.5)' : 'rgba(255,120,64,.45)';
 
+  // Simplify gradient on mobile
   const grad = ctx.createLinearGradient(0, h, 0, 0);
   grad.addColorStop(0, crashed ? 'rgba(255,45,74,0)' : 'rgba(255,120,64,0)');
   grad.addColorStop(1, crashed ? 'rgba(255,45,74,.14)' : 'rgba(255,120,64,.12)');
@@ -101,8 +123,10 @@ function draw() {
   ctx.fillStyle = grad;
   ctx.fill();
 
+  // Reduce shadow blur on mobile
+  const shadowBlur = isMobile ? 8 : 14;
   ctx.save();
-  ctx.shadowBlur = 14;
+  ctx.shadowBlur = shadowBlur;
   ctx.shadowColor = glowColor;
   ctx.strokeStyle = lineColor;
   ctx.lineWidth = 2.5;
@@ -132,7 +156,15 @@ function draw() {
   }
 }
 
-// ─── Flight loop ──────────────────────────────────────────────
+// ─── Fixed 60 FPS game loop ──────────────────────────────────
+// This implements a fixed timestep game loop that maintains 60 FPS
+// independent of the display refresh rate. Game logic runs at fixed
+// intervals while rendering can be called multiple times or skipped.
+const TARGET_FPS = 60;
+const FRAME_TIME = 1000 / TARGET_FPS; // ~16.67ms per frame
+let lastFrameTime = 0;
+let accumulatedTime = 0;
+
 function startFlight() {
   state = 'flying';
   pathPts = [];
@@ -140,39 +172,76 @@ function startFlight() {
   viewMaxMs = Math.max(Math.log(crashPoint) / MULT_K * 1.25, 8000);
   updateUI();
   let lastRiseTime = 0;
+  let lastUIUpdate = 0;
+  lastFrameTime = performance.now();
+  accumulatedTime = 0;
 
-  function frame(now) {
-    const elapsed = now - flyStart;
-    currentMult = multAtMs(elapsed);
+  function gameLoop(currentTime) {
+    const deltaTime = currentTime - lastFrameTime;
+    lastFrameTime = currentTime;
+    accumulatedTime += deltaTime;
 
-    if (document.getElementById('autoToggle').checked && betPlaced && !cashedOut) {
-      const at = parseFloat(document.getElementById('autoCashVal').value) || 2;
-      if (currentMult >= at) doCashOut();
+    // Prevent spiral of death - cap accumulated time
+    if (accumulatedTime > FRAME_TIME * 5) {
+      accumulatedTime = FRAME_TIME * 5;
     }
 
-    if (currentMult >= crashPoint) {
-      currentMult = crashPoint;
-      pathPts.push(multToXY(currentMult, elapsed));
-      state = 'crashed';
-      draw();
-      SFX.crash();
-      onCrash();
-      return;
+    // Update game logic at fixed 60 FPS
+    while (accumulatedTime >= FRAME_TIME) {
+      const elapsed = performance.now() - flyStart;
+      currentMult = multAtMs(elapsed);
+
+      // Auto cashout check
+      if (document.getElementById('autoToggle').checked && betPlaced && !cashedOut) {
+        const at = parseFloat(document.getElementById('autoCashVal').value) || 2;
+        if (currentMult >= at) doCashOut();
+      }
+
+      // Check for crash
+      if (currentMult >= crashPoint) {
+        currentMult = crashPoint;
+        pathPts.push(multToXY(currentMult, elapsed));
+        state = 'crashed';
+        draw();
+        if (!isLowEndDevice) SFX.crash();
+        onCrash();
+        return;
+      }
+
+      // Sound effects (time-based, not frame-based)
+      const riseInterval = isMobile ? 300 : 250;
+      if (!isLowEndDevice && elapsed - lastRiseTime > riseInterval) {
+        SFX.rise(currentMult);
+        lastRiseTime = elapsed;
+      }
+
+      // Path points accumulation
+      if (pathPts.length < MAX_PATH_POINTS || elapsed % 100 < 16) {
+        pathPts.push(multToXY(currentMult, elapsed));
+        if (pathPts.length > MAX_PATH_POINTS) {
+          pathPts.shift();
+        }
+      }
+
+      accumulatedTime -= FRAME_TIME;
     }
 
-    // Throttle rise sound every 250ms
-    if (elapsed - lastRiseTime > 250) {
-      SFX.rise(currentMult);
-      lastRiseTime = elapsed;
-    }
-
-    pathPts.push(multToXY(currentMult, elapsed));
+    // Render (can be called multiple times per logic update or skipped)
     draw();
-    updateMultDisplay();
-    if (state === 'flying') raf = requestAnimationFrame(frame);
+
+    // UI updates (throttled)
+    if (currentTime - lastUIUpdate > UI_UPDATE_INTERVAL) {
+      updateMultDisplay();
+      lastUIUpdate = currentTime;
+    }
+
+    // Continue loop if still flying
+    if (state === 'flying') {
+      raf = requestAnimationFrame(gameLoop);
+    }
   }
 
-  raf = requestAnimationFrame(frame);
+  raf = requestAnimationFrame(gameLoop);
 }
 
 function onCrash() {
@@ -192,7 +261,7 @@ function startCountdown() {
   // Check if game is over
   if (balance <= 0) {
     setTimeout(() => {
-      SFX.gameOver();
+      if (!isLowEndDevice) SFX.gameOver(); // Skip game over sound on low-end devices
       show('gameOverOverlay');
     }, 600);
     return;
@@ -207,6 +276,8 @@ function startCountdown() {
   updateUI();
   draw();
 
+  // Use longer intervals on mobile for better performance
+  const interval = isMobile ? 1200 : 1000;
   cdTimer = setInterval(() => {
     n--;
     if (n <= 0) {
@@ -231,10 +302,13 @@ function startCountdown() {
       viewMaxMs = Math.max(Math.log(crashPoint) / MULT_K * 1.25, 8000);
       startFlight();
     } else {
-      SFX.tick();
+      // Reduce tick frequency on mobile and disable on low-end devices
+      if (!isLowEndDevice && (!isMobile || n % 2 === 0)) {
+        SFX.tick();
+      }
       document.getElementById('cdNum').textContent = n;
     }
-  }, 1000);
+  }, interval);
 }
 
 // ─── Actions ──────────────────────────────────────────────────
@@ -269,7 +343,7 @@ function doPlaceBet() {
   balance -= betAmt;
   betPlaced = true;
   cashedOut = false;
-  SFX.bet();
+  if (!isLowEndDevice) SFX.bet(); // Skip sound on low-end devices
   updateBalanceUI();
   updateUI();
   
@@ -288,13 +362,13 @@ function doCashOut() {
   cashedOut = true;
   const win = Math.floor(betAmt * currentMult);
   balance += win;
-  SFX.cashout();
+  if (!isLowEndDevice) SFX.cashout(); // Skip cashout sound on low-end devices
   updateBalanceUI();
   showToast(`+${fmt(win)} CR  @  ${currentMult.toFixed(2)}×`);
   updateUI();
   if (balance >= GOAL) {
     setTimeout(() => {
-      SFX.bigWin();
+      if (!isLowEndDevice) SFX.bigWin(); // Skip big win sound on low-end devices
       show('winOverlay');
     }, 600);
   }
@@ -367,13 +441,17 @@ function updateMultDisplay() {
 }
 
 function updateBalanceUI() {
-  document.getElementById('balanceDisplay').textContent = fmt(balance);
+  const balanceEl = document.getElementById('balanceDisplay');
   const pct = Math.min(balance / GOAL * 100, 100);
-  document.getElementById('progressFill').style.width = Math.max(pct, 0.05) + '%';
+  const progressFill = document.getElementById('progressFill');
+  const progressPct = document.getElementById('progressPct');
+
+  balanceEl.textContent = fmt(balance);
+  progressFill.style.width = Math.max(pct, 0.05) + '%';
   const pctStr = pct < 0.01 ? '<0,01%' : (pct < 1
     ? pct.toFixed(2).replace('.', ',') + '%'
     : pct.toFixed(1).replace('.', ',') + '%');
-  document.getElementById('progressPct').textContent = pctStr;
+  progressPct.textContent = pctStr;
 }
 
 function updateHistoryUI() {
