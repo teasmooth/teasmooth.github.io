@@ -310,6 +310,16 @@ header{
 .qb:hover{background:linear-gradient(135deg,rgba(37,22,32,1),rgba(52,26,31,1));color:var(--text);border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 12px rgba(255,107,53,0.2);}
 .qb:active{transform:scale(0.95);}
 
+.clear-btn{
+  background:linear-gradient(135deg,rgba(220,53,69,0.8),rgba(176,42,55,0.8)) !important;
+  border-color: var(--red) !important;
+  color: var(--text) !important;
+}
+.clear-btn:hover{
+  background:linear-gradient(135deg,rgba(220,53,69,1),rgba(176,42,55,1)) !important;
+  box-shadow:0 4px 12px rgba(220,53,69,0.3) !important;
+}
+
 .auto-row{
   display:flex;
   align-items:center;

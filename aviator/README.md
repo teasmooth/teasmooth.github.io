@@ -58,18 +58,23 @@ During flight, players can place bets even after the plane has taken off, allowi
 
 ## Controls
 
-- **Bet Amount**: Set your wager amount
-- **Place Bet**: Speeds up the countdown timer (quadruples speed) or place bets during flight
+- **Bet Amount**: Set your wager amount (0 = skip round)
+- **Quick Bets**: 10%, 25%, 50%, MAX of your balance
+- **Clear Bet**: Reset bet amount to 0 (skip round)
+- **Place Bet**: Speeds up countdown or place bets during flight
 - **Cash Out**: Collect winnings during flight
 - **Auto Cashout**: Set automatic cashout multiplier
 - **Mute**: Toggle sound effects
 
-### Countdown Mechanics
+### Game Mechanics
 
-- **Normal countdown**: 5 seconds at normal speed
-- **Speed boost**: Placing a bet during countdown quadruples the speed (4x faster)
-- **Last-minute betting**: Bets can be placed even after takeoff
-- **Auto-bet**: If no bet is placed by countdown end, uses current bet amount
+- **No instant crashes**: Minimum crash multiplier is 1.01x (no 1.00x crashes)
+- **Slower multiplier growth**: Rounds last longer for better decision-making
+- **Responsive multiplier display**: Updates every 200ms on mobile, 60ms on desktop
+- **Performance optimizations**: Heavy animations disabled during flight
+- **Last-minute betting**: Place bets even after takeoff
+- **Countdown acceleration**: Betting quadruples countdown speed (4x faster)
+- **Skip rounds**: Set bet to 0 to skip any round without losing credits
 
 ## Browser Support
 

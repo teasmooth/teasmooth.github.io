@@ -8,8 +8,8 @@ const COUNTDOWN_SEC = 8;
 // ─── Performance optimizations ─────────────────────────────────
 // Mobile detection and performance tuning
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-const UI_UPDATE_INTERVAL = isMobile ? 300 : 50; // Reduced frequency on mobile for smoother performance
-const MULT_UPDATE_INTERVAL = isMobile ? 200 : 60; // More responsive multiplier updates
+const UI_UPDATE_INTERVAL = isMobile ? 200 : 50; // Reduced frequency on mobile for smoother performance
+const MULT_UPDATE_INTERVAL = isMobile ? 100 : 60; // More responsive multiplier updates
 const MAX_PATH_POINTS = isMobile ? 50 : 100; // Limit path points on mobile
 const CANVAS_SCALE = isMobile ? Math.min(devicePixelRatio, 2) : devicePixelRatio; // Cap DPR on mobile
 
@@ -299,7 +299,7 @@ function startCountdown() {
   function countdownTick() {
     n--;
     if (n <= 0) {
-      // If no bet was placed, auto-place default bet and start flight
+      // If no bet was placed and betAmount > 0, auto-place the bet and start flight
       if (!betPlaced) {
         const amt = parseInt(document.getElementById('betAmount').value, 10);
         if (amt && amt >= 1 && amt <= balance) {
@@ -309,6 +309,7 @@ function startCountdown() {
           cashedOut = false;
           updateBalanceUI();
         }
+        // If betAmount is 0, skip this round (no bet placed)
       }
       
       document.getElementById('cdOverlay').classList.remove('show');
@@ -366,9 +367,21 @@ function handleAction() {
 
 function doPlaceBet() {
   const amt = parseInt(document.getElementById('betAmount').value, 10);
-  if (!amt || amt < 1 || amt > balance) {
+  if (isNaN(amt) || amt < 0 || amt > balance) {
     shakeBet(); return;
   }
+  
+  // If betAmount is 0, skip this round (don't place any bet)
+  if (amt === 0) {
+    // Speed up countdown to show we're skipping
+    if (state === 'waiting' && cdTimer) {
+      countdownSpeed = 4;
+    }
+    updateUI();
+    return;
+  }
+  
+  // Place the bet normally
   betAmt = amt;
   balance -= betAmt;
   betPlaced = true;
@@ -385,9 +398,15 @@ function doPlaceBet() {
 
 function doPlaceBetDuringFlight() {
   const amt = parseInt(document.getElementById('betAmount').value, 10);
-  if (!amt || amt < 1 || amt > balance) {
+  if (isNaN(amt) || amt < 0 || amt > balance) {
     shakeBet(); return;
   }
+  
+  // If betAmount is 0, skip betting (no action needed)
+  if (amt === 0) {
+    return;
+  }
+  
   betAmt = amt;
   balance -= betAmt;
   betPlaced = true;
@@ -428,10 +447,15 @@ function quickBet(frac) {
   document.getElementById('betAmount').value = amt;
 }
 
+function clearBet() {
+  document.getElementById('betAmount').value = 0;
+}
+
 // ─── UI ───────────────────────────────────────────────────────
 function updateUI() {
   const btn = document.getElementById('actionBtn');
   const betInput = document.getElementById('betAmount');
+  const betAmount = parseInt(betInput.value, 10) || 0;
 
   if (state === 'flying') {
     betInput.disabled = false; // Allow betting during flight
@@ -444,7 +468,7 @@ function updateUI() {
     } else {
       // Allow placing bets during flight (last-minute betting)
       btn.className = 'state-bet';
-      btn.textContent = 'SCOMMETTI';
+      btn.textContent = betAmount === 0 ? 'SALTA ROUND' : 'SCOMMETTI';
     }
   } else if (state === 'waiting') {
     betInput.disabled = false;
@@ -453,7 +477,7 @@ function updateUI() {
       btn.textContent = 'PUNTATA PIAZZATA ✓';
     } else {
       btn.className = 'state-bet';
-      btn.textContent = 'SCOMMETTI';
+      btn.textContent = betAmount === 0 ? 'SALTA ROUND' : 'SCOMMETTI';
     }
   } else if (state === 'crashed') {
     betInput.disabled = true;
