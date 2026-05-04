@@ -2,7 +2,7 @@
 const GOAL = 1_000_000;
 const START = 1_000;
 const HOUSE = 0.03;
-const MULT_K = 0.00035; // multiplier = e^(K * elapsedMs) - SLOWER growth for longer rounds
+const MULT_K = 0.00015; // multiplier = e^(K * elapsedMs) - SLOWER growth for longer rounds
 const COUNTDOWN_SEC = 8;
 
 // ─── Performance optimizations ─────────────────────────────────
